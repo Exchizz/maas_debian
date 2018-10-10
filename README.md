@@ -15,5 +15,4 @@ sda                   8:0    0 111.8G  0 disk
   ├─VolGroup01-root 254:0    0     5G  0 lvm  /
   ├─VolGroup01-usr  254:1    0     5G  0 lvm  
   └─VolGroup01-var  254:2    0     5G  0 lvm  
-sdb                   8:16   0   9.1T  0 disk 
 ```
