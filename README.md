@@ -4,7 +4,7 @@ curtin config to deploy debian using Ubuntu Maas
 
 Follow https://askubuntu.com/a/973247/872443 to upload debian-cloud-image to ubuntu maas.
 
-
+```
 Partition layout will be as shown below:
 NAME                MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
 sda                   8:0    0 111.8G  0 disk 
@@ -16,3 +16,4 @@ sda                   8:0    0 111.8G  0 disk
   ├─VolGroup01-usr  254:1    0     5G  0 lvm  
   └─VolGroup01-var  254:2    0     5G  0 lvm  
 sdb                   8:16   0   9.1T  0 disk 
+```
