@@ -1,0 +1,61 @@
+#cloud-config
+kernel:
+  fallback-package: linux-image-amd64
+  package: linux-image-amd64
+debconf_selections:
+ maas: |
+  {{for line in str(curtin_preseed).splitlines()}}
+  {{line}}
+  {{endfor}}
+
+late_commands:
+  maas: [wget, '--no-proxy', '{{node_disable_pxe_url}}', '--post-data', '{{node_disable_pxe_data}}', '-O', '/dev/null']
+  ssh: [ip,"a","s"]
+  package_install: ["curtin", "in-target", "--", "apt-get", "-y", "install", "lvm2"]
+
+partitioning_commands:
+  builtin: []
+  01_partition_announce: ["echo", "'### Partitioning disk ###'"]
+  02_partition_make_label: ["/sbin/parted", "/dev/sda", "-s", "'","mklabel","gpt","'"]
+  03_partition_make_part: ["/sbin/parted", "/dev/sda", "-s", "'","mkpart","primary","40s","2047s","'"]
+  04_partition_make_part: ["/sbin/parted", "/dev/sda", "-s", "'","mkpart","primary","2048s","2099199s","'"]
+  05_partition_make_part: ["/sbin/parted", "/dev/sda", "-s", "'","mkpart","primary","2099200s","52430847s","'"]
+  06_partition_make_part: ["/sbin/parted", "/dev/sda", "-s", "'","mkpart","primary","52430848s","100%","'"]
+  07_debug: ["/sbin/parted", "/dev/sda","-s","'","unit","s","'","-s","'","print","'"]
+#  12_partition_make_fs: ["/sbin/mkfs", "-t", "ext4", "/dev/sda4"]
+
+  07_partition_announce: ["echo", "'### Creating LVM layout ###'"]
+  08_enable_lvm: ["/sbin/pvcreate","/dev/sda4"]
+  09_enable_lvm: ["/sbin/vgcreate","VolGroup01","/dev/sda4"]
+  10_enable_lvm: ["/sbin/lvcreate","-L","5g","-n","root","VolGroup01","-y"]
+  11_enable_lvm: ["/sbin/lvcreate","-L","5g","-n","usr","VolGroup01","-y"]
+  12_enable_lvm: ["/sbin/lvcreate","-L","5g","-n","var","VolGroup01","-y"]
+  13_set_flag: ["/sbin/parted","/dev/sda", "-s","'","set","1","bios_grub","'"]
+
+  13_partition_announce: ["echo", "'### Creating filesystems ###'"]
+  14_partition_make_fs: ["/sbin/mkfs", "-t", "ext4", "/dev/sda2"]
+  15_partition_make_fs: ["/sbin/mkfs", "-t", "ext4", "/dev/VolGroup01/var"]
+  16_partition_make_fs: ["/sbin/mkfs", "-t", "ext4", "/dev/VolGroup01/usr"]
+  17_partition_make_fs: ["/sbin/mkfs", "-t", "ext4", "/dev/VolGroup01/root"]
+
+
+  18_partition_announce: ["echo", "'### Creating partition labels ###'"]
+  19_partition_label_fs: ["/sbin/e2label", "/dev/sda2", "boot"]
+  20_partition_label_fs: ["/sbin/e2label", "/dev/VolGroup01/root", "root"]
+
+  21_partition_mount_fs: ["sh", "-c", "mount /dev/VolGroup01/root $TARGET_MOUNT_POINT"]
+  22_partition_mkdir: ["sh", "-c", "mkdir $TARGET_MOUNT_POINT/boot"]
+  23_partition_mount_fs: ["sh", "-c", "mount /dev/sda2 $TARGET_MOUNT_POINT/boot"]
+
+  24_partition_announce: ["echo", "'### Filling /etc/fstab ###'"]
+  25_partition_make_fstab: ["sh", "-c", "echo '/dev/VolGroup01/root / ext4 defaults 0 0' >> $OUTPUT_FSTAB"]
+  26_partition_make_fstab: ["sh", "-c", "echo '/dev/sda2 /boot ext4 defaults 0 0' >> $OUTPUT_FSTAB"]
+  27_debug: ["sh","-c","cat $OUTPUT_FSTAB"]
+  #28_debug: ["sh","-c","bash"]
+  #20_partition_make_swap: ["sh", "-c", "mkswap /dev/sda6"]
+  #21_partition_make_fstab: ["sh", "-c", "echo '/dev/sda6 none swap sw 0 0' >> $OUTPUT_FSTAB"]
+
+
+grub:
+  install_devices:
+    - /dev/sda
